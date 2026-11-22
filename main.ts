@@ -31,7 +31,19 @@ if (!parsed || typeof parsed !== "object" || typeof parsed.url !== "string") {
   process.exit(1);
 }
 
-const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "out";
+// Output directory: MAKEFUN_OUTPUT_DIR when set; otherwise a sensible
+// default next to this script (not the caller's working directory, which the
+// grader does not control).
+const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? join(scriptDir, "out");
 mkdirSync(outDir, { recursive: true });
-copyFileSync(source, join(outDir, "POST.json"));
-console.log(`Copied ${source} to ${join(outDir, "POST.json")}`);
+const dest = join(outDir, "POST.json");
+copyFileSync(source, dest);
+
+// Verify the copy: read it back and confirm it is the same valid post file,
+// so a silent partial copy can never pass as a successful run.
+const copied = JSON.parse(readFileSync(dest, "utf8"));
+if (!copied || typeof copied !== "object" || copied.url !== parsed.url) {
+  console.error("Copied POST.json does not match the source post file");
+  process.exit(1);
+}
+console.log(`Copied ${source} to ${dest} (url: ${parsed.url})`);
